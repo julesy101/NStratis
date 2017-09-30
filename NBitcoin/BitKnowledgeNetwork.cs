@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using NBitcoin.BouncyCastle.Math;
 using NBitcoin.DataEncoders;
@@ -48,7 +48,7 @@ namespace NBitcoin
 
 			consensus.CoinType = 105;
 
-			var genesis = CreateGenesis(1506729364, 1356975, 0x1e0fffff, 1, Money.Zero);
+			var genesis = CreateGenesis(1506729364, 1356975, consensus.PowLimit, 1, Money.Zero);
 			consensus.HashGenesisBlock = genesis.GetHash();
 
 			// The message start string is designed to be unlikely to occur in normal data.
