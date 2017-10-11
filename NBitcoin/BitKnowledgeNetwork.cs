@@ -6,11 +6,12 @@ using NBitcoin.Protocol;
 
 namespace NBitcoin
 {
-	public partial class Network
-	{
-
-		public static Network BitKnowledgeMain => InitBitKnowledgeMain();
-		public static Network BitKnowledgeTest => InitBitKnowledgeTest();
+    public partial class Network
+    {
+	    private static Network _bitMain;
+	    private static Network _bitTest;
+	    public static Network BitKnowledgeMain => _bitMain ?? (_bitMain = InitBitKnowledgeMain());
+	    public static Network BitKnowledgeTest => _bitTest ?? (_bitTest = InitBitKnowledgeTest());
 
 		private static Network InitBitKnowledgeMain()
 		{
@@ -18,7 +19,7 @@ namespace NBitcoin
 			Transaction.TimeStamp = true;
 
 			var consensus = new Consensus();
-
+			
 			consensus.SubsidyHalvingInterval = 210000;
 			consensus.MajorityEnforceBlockUpgrade = 750;
 			consensus.MajorityRejectBlockOutdated = 950;
@@ -32,6 +33,7 @@ namespace NBitcoin
 			consensus.PowTargetSpacing = TimeSpan.FromSeconds(10 * 60);
 			consensus.PowAllowMinDifficultyBlocks = false;
 			consensus.PowNoRetargeting = false;
+			
 			consensus.RuleChangeActivationThreshold = 1916; // 95% of 2016
 			consensus.MinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
 
@@ -65,7 +67,7 @@ namespace NBitcoin
 
 
 
-			var builder = new NetworkBuilder()
+			var builder =new NetworkBuilder()
 				.SetName("BitKnowledgeMain")
 				.SetConsensus(consensus)
 				.SetMagic(magic)
@@ -73,7 +75,7 @@ namespace NBitcoin
 				.SetPort(16179)
 				.SetRPCPort(16175)
 #if !NOSOCKET
-				.AddDNSSeeds(new[] { new DNSSeedData("seed.shuffl.io", "seed.shuffl.io"), new DNSSeedData("seed.bitknowledge.io", "seed.bitknowledge.io") })
+				.AddDNSSeeds(new []{new DNSSeedData("seed.shuffl.io", "seed.shuffl.io"), new DNSSeedData("seed.bitknowledge.io", "seed.bitknowledge.io")})
 #endif
 				.SetBase58Bytes(Base58Type.PUBKEY_ADDRESS, new byte[] { (63) })
 				.SetBase58Bytes(Base58Type.SCRIPT_ADDRESS, new byte[] { (125) })
@@ -117,7 +119,7 @@ namespace NBitcoin
 
 			var consensus = Main.Consensus.Clone();
 			consensus.PowLimit = new Target(uint256.Parse("0000ffff00000000000000000000000000000000000000000000000000000000"));
-
+			consensus.LastPOWBlock = 12500;
 			// The message start string is designed to be unlikely to occur in normal data.
 			// The characters are rarely used upper ASCII, not valid as UTF-8, and produce
 			// a large 4-byte int at any alignment.
@@ -144,21 +146,28 @@ namespace NBitcoin
 				.SetGenesis(genesis)
 				.SetPort(26179)
 				.SetRPCPort(26175)
-				.SetBase58Bytes(Base58Type.PUBKEY_ADDRESS, new byte[] { (65) })
-				.SetBase58Bytes(Base58Type.SCRIPT_ADDRESS, new byte[] { (196) })
-				.SetBase58Bytes(Base58Type.SECRET_KEY, new byte[] { (65 + 128) })
-				.SetBase58Bytes(Base58Type.ENCRYPTED_SECRET_KEY_NO_EC, new byte[] { 0x01, 0x42 })
-				.SetBase58Bytes(Base58Type.ENCRYPTED_SECRET_KEY_EC, new byte[] { 0x01, 0x43 })
-				.SetBase58Bytes(Base58Type.EXT_PUBLIC_KEY, new byte[] { (0x04), (0x88), (0xB2), (0x1E) })
-				.SetBase58Bytes(Base58Type.EXT_SECRET_KEY, new byte[] { (0x04), (0x88), (0xAD), (0xE4) })
+				.SetBase58Bytes(Base58Type.PUBKEY_ADDRESS, new byte[] {(65)})
+				.SetBase58Bytes(Base58Type.SCRIPT_ADDRESS, new byte[] {(196)})
+				.SetBase58Bytes(Base58Type.SECRET_KEY, new byte[] {(65 + 128)})
+				.SetBase58Bytes(Base58Type.ENCRYPTED_SECRET_KEY_NO_EC, new byte[] {0x01, 0x42})
+				.SetBase58Bytes(Base58Type.ENCRYPTED_SECRET_KEY_EC, new byte[] {0x01, 0x43})
+				.SetBase58Bytes(Base58Type.EXT_PUBLIC_KEY, new byte[] {(0x04), (0x88), (0xB2), (0x1E)})
+				.SetBase58Bytes(Base58Type.EXT_SECRET_KEY, new byte[] {(0x04), (0x88), (0xAD), (0xE4)});
 
-#if !NOSOCKET
-				.AddDNSSeeds(new[]
-				{
-					new DNSSeedData("seed.shuffl.io", "test.shuffl.io"),
-				});
-#endif
+			var seeds = new[]
+			{
+				"198.50.233.73", "198.50.233.74"
+			};
+			// Convert the pnSeeds array into usable address objects.
+			Random rand = new Random();
+			TimeSpan nOneWeek = TimeSpan.FromDays(7);
+			var vFixedSeeds = seeds.Select(seed => new NetworkAddress
+			{
+				Time = DateTime.UtcNow - TimeSpan.FromSeconds(rand.NextDouble() * nOneWeek.TotalSeconds) - nOneWeek,
+				Endpoint = Utils.ParseIpEndpoint(seed, builder._Port)
+			});
 
+			builder.AddSeeds(vFixedSeeds);
 			return builder.BuildAndRegister();
 		}
 
@@ -176,10 +185,10 @@ namespace NBitcoin
 			txNew.AddInput(new TxIn
 			{
 				ScriptSig = new Script(Op.GetPushOp(0), new Op
-				{
-					Code = (OpcodeType)0x1,
-					PushData = new[] { (byte)42 }
-				}, Op.GetPushOp(Encoders.ASCII.DecodeData(pszTimestamp)))
+									   {
+											Code = (OpcodeType)0x1,
+											PushData = new[] { (byte)42 }
+									   }, Op.GetPushOp(Encoders.ASCII.DecodeData(pszTimestamp)))
 			});
 			txNew.AddOutput(new TxOut()
 			{
